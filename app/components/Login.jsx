@@ -1,3 +1,8 @@
+// Updated Login.js (replace your existing Login component code with this)
+// Note: I've made handleLogin async to handle the API call properly.
+// I've kept 'rememberMe' as-is, but it's not integrated with the backend (no direct support).
+// If you want 'rememberMe' to affect token persistence, you could store tokens in memory (e.g., state) instead of SecureStore when unchecked,
+// but that would require changes to the api.js interceptors (which rely on SecureStore). For simplicity, tokens are always stored securely.
 import { AntDesign, MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import React, { useEffect, useRef, useState } from "react";
@@ -12,7 +17,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useAuth } from "../AuthContext";
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -31,10 +36,10 @@ export default function Login() {
       duration: 600,
       useNativeDriver: true,
     }).start();
-  }, []);
+  }, [fadeAnim]);
 
-  const handleLogin = () => {
-    const success = login(email, password);
+  const handleLogin = async () => {
+    const success = await login(email, password);
     if (success) {
       navigation.navigate("AppTabs");
     } else {
@@ -107,7 +112,7 @@ export default function Login() {
 
           <TouchableOpacity
             style={[styles.button, styles.googleButton]}
-            onPress={() => alert("Connexion avec Google")}
+            onPress={() => alert("Connexion avec Google")} // TODO: Implement mobile Google auth if needed (see notes below)
           >
             <AntDesign
               name="google"
@@ -152,6 +157,7 @@ export default function Login() {
   );
 }
 
+// Styles remain unchanged
 const styles = StyleSheet.create({
   background: { flex: 1, resizeMode: "cover" },
   overlay: {

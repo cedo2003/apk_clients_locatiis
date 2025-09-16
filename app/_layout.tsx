@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { StyleSheet } from "react-native";
+import { AuthProvider } from "../contexts/AuthContext";
 import RootNavigator from "./(tabs)";
-import { AuthProvider } from "./AuthContext";
 import { FavorisProvider } from "./FavorisContext";
 import SplashLoader from "./SplashLoader";
 import { ThemeProvider } from "./ThemeContext";

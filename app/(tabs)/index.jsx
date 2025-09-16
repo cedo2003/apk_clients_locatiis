@@ -5,7 +5,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React, { useEffect, useRef } from "react";
 import { Animated, StyleSheet, TouchableOpacity, View } from "react-native";
 
-import { useAuth } from "../AuthContext";
+import { useAuth } from "../../contexts/AuthContext";
 import Login from "../components/Login";
 import Monprofil from "../components/Monprofil";
 import Register from "../components/Signup";
@@ -53,7 +53,7 @@ function Tabs() {
         }),
       ])
     ).start();
-  }, []);
+  }, [borderAnim]);
 
   const borderColor = borderAnim.interpolate({
     inputRange: [0, 1],

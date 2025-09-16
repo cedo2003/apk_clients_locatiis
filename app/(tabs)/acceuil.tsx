@@ -13,9 +13,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Config from "react-native-config";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import Icon from "react-native-vector-icons/FontAwesome";
-import { useAuth } from "../AuthContext";
+import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../ThemeContext";
 
 const categories = [
@@ -25,6 +26,7 @@ const categories = [
   "Immeuble",
   "Boutique",
 ];
+console.error(Config.BACKEND_URL);
 
 export const biensData = [
   {
