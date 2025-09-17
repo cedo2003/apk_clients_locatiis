@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { StyleSheet } from "react-native";
+import Toast from "react-native-toast-message";
 import { AuthProvider } from "../contexts/AuthContext";
 import RootNavigator from "./(tabs)";
 import { FavorisProvider } from "./FavorisContext";
@@ -24,13 +25,16 @@ export default function App() {
   }
 
   return (
-    <AuthProvider>
-      <ThemeProvider>
-        <FavorisProvider>
-          <RootNavigator />
-        </FavorisProvider>
-      </ThemeProvider>
-    </AuthProvider>
+    <>
+      <AuthProvider>
+        <ThemeProvider>
+          <FavorisProvider>
+            <RootNavigator />
+          </FavorisProvider>
+        </ThemeProvider>
+      </AuthProvider>
+      <Toast />
+    </>
   );
 }
 

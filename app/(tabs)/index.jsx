@@ -163,11 +163,6 @@ export default function AppTabs() {
         options={{ title: "INSCRIPTION" }}
       />
       <Stack.Screen
-        name="AppTabs"
-        component={AppTabs}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
         name="Notifications"
         component={Notifications}
         options={{ title: "Notifications" }}

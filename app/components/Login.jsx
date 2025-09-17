@@ -1,8 +1,8 @@
 // Updated Login.js (replace your existing Login component code with this)
-// Note: I've made handleLogin async to handle the API call properly.
-// I've kept 'rememberMe' as-is, but it's not integrated with the backend (no direct support).
-// If you want 'rememberMe' to affect token persistence, you could store tokens in memory (e.g., state) instead of SecureStore when unchecked,
-// but that would require changes to the api.js interceptors (which rely on SecureStore). For simplicity, tokens are always stored securely.
+// Note: I've made handleLogin async and added error handling.
+// The 'rememberMe' feature is a UI element; for simplicity, tokens are always stored securely using SecureStore.
+// If you want 'rememberMe' to control token persistence, you'd need to adjust how tokens are stored (e.g., in-memory vs. SecureStore)
+// and how the API interceptor retrieves them. This would add complexity to the AuthContext and api.js.
 import { AntDesign, MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import React, { useEffect, useRef, useState } from "react";
@@ -39,10 +39,19 @@ export default function Login() {
   }, [fadeAnim]);
 
   const handleLogin = async () => {
-    const success = await login(email, password);
-    if (success) {
-      navigation.navigate("AppTabs");
-    } else {
+    console.log(`Attempting login for user: ${email}`);
+    try {
+      const success = await login(email, password);
+      if (success) {
+        console.log("Login successful, navigating to AppTabs.");
+        // Replace the login screen with the main app screen to prevent going back
+        navigation.replace("Retour");
+      } else {
+        console.log("Login failed: login function returned false.");
+        setShowError(true);
+      }
+    } catch (err) {
+      console.error("An error occurred during login:", err);
       setShowError(true);
     }
   };

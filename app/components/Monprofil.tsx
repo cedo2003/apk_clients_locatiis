@@ -18,35 +18,38 @@ export default function Monprofil() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const { user, setUser } = useAuth();
-
-  const [profile, setProfile] = useState({
-    photo: "../../assets/images/profil.jpg",
-    nom: "Cédric",
-    prenom: "Léger",
-    pseudo: "cedricdev",
-    email: "cedric.leger@example.com",
-    tel: "+229 66 77 88 99",
-    naissance: "1995-08-10",
-    sexe: "Masculin",
-    adresse: "Bénin, Cotonou, Fidjrossè",
-    nationalite: "Béninoise",
-    etatCivil: "Célibataire",
-    profession: "Développeur Fullstack",
-    interets: "Immobilier, Sport, Santé",
-  });
-
   const [editingField, setEditingField] = useState<string | null>(null);
   const [tempValue, setTempValue] = useState("");
 
+  if (!user) {
+    return (
+      <View
+        style={[
+          styles.container,
+          {
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: isDark ? "#111" : "#f5f5f5",
+          },
+        ]}
+      >
+        <Text style={{ color: isDark ? "#fff" : "#000" }}>
+          Chargement du profil...
+        </Text>
+      </View>
+    );
+  }
+
   const startEditing = (field: string, value: string) => {
     setEditingField(field);
-    setTempValue(value);
+    setTempValue(value || "");
   };
 
   const saveEditing = (field: string) => {
-    setProfile({ ...profile, [field]: tempValue });
+    setUser({ ...user, [field]: tempValue });
     setEditingField(null);
     setTempValue("");
+    // TODO: Make an API call here to persist the change on the server
   };
 
   const handleDeleteAccount = () => {
@@ -84,15 +87,19 @@ export default function Monprofil() {
     });
 
     if (!result.canceled) {
-      setProfile({ ...profile, photo: result.assets[0].uri });
+      setUser({ ...user, profile_picture: result.assets[0].uri });
+      // TODO: Make an API call here to upload the image and save the new URL
     }
   };
+
+  const photoUri = user.profile_picture;
+  const placeholderImage = require("../../assets/images/profil.jpg");
 
   const renderRow = (
     icon: string,
     label: string,
     field: string,
-    value: string
+    value: string | null | undefined
   ) => (
     <View style={styles.row}>
       <MaterialIcons name={icon as any} size={22} color="#28a745" />
@@ -112,7 +119,7 @@ export default function Monprofil() {
           />
         ) : (
           <Text style={[styles.value, { color: isDark ? "#fff" : "#000" }]}>
-            {value}
+            {value || ""}
           </Text>
         )}
       </View>
@@ -120,7 +127,7 @@ export default function Monprofil() {
         onPress={() =>
           editingField === field
             ? saveEditing(field)
-            : startEditing(field, value)
+            : startEditing(field, value || "")
         }
       >
         <MaterialIcons
@@ -144,16 +151,19 @@ export default function Monprofil() {
         style={[styles.card, { backgroundColor: isDark ? "#222" : "#fff" }]}
       >
         <TouchableOpacity onPress={changePhoto}>
-          <Image source={{ uri: profile.photo }} style={styles.avatar} />
+          <Image
+            source={photoUri ? { uri: photoUri } : placeholderImage}
+            style={styles.avatar}
+          />
           <View style={styles.cameraIcon}>
             <MaterialIcons name="photo-camera" size={20} color="#fff" />
           </View>
         </TouchableOpacity>
         <Text style={[styles.name, { color: isDark ? "#fff" : "#000" }]}>
-          {user.nom} {user.prenom}
+          {user.username || ""}
         </Text>
         <Text style={{ color: isDark ? "#aaa" : "#555", marginBottom: 10 }}>
-          @{user.pseudo}
+          @{user.username || ""}
         </Text>
       </View>
 
@@ -162,10 +172,9 @@ export default function Monprofil() {
         style={[styles.card, { backgroundColor: isDark ? "#222" : "#fff" }]}
       >
         <Text style={styles.sectionTitle}>Informations de base</Text>
-        {renderRow("person", "Nom", "nom", user.nom)}
-        {renderRow("person", "Prénom", "prenom", user.prenom)}
+        {renderRow("person", "Nom d'utilisateur", "username", user.username)}
         {renderRow("email", "Email", "email", user.email)}
-        {renderRow("phone", "Téléphone", "tel", user.tel)}
+        {renderRow("phone", "Téléphone", "phone", user.phone)}
         {renderRow("cake", "Date de naissance", "naissance", user.naissance)}
         {renderRow("wc", "Sexe", "sexe", user.sexe)}
       </View>
