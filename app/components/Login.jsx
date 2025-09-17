@@ -26,7 +26,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [showError, setShowError] = useState(false);
 
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const navigation = useNavigation();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -38,15 +38,18 @@ export default function Login() {
     }).start();
   }, [fadeAnim]);
 
+  useEffect(() => {
+    if (user) {
+      console.log("Login component: user is now set, navigating to AppTabs.");
+      navigation.replace("Retour");
+    }
+  }, [user, navigation]);
+
   const handleLogin = async () => {
     console.log(`Attempting login for user: ${email}`);
     try {
       const success = await login(email, password);
-      if (success) {
-        console.log("Login successful, navigating to AppTabs.");
-        // Replace the login screen with the main app screen to prevent going back
-        navigation.replace("Retour");
-      } else {
+      if (!success) {
         console.log("Login failed: login function returned false.");
         setShowError(true);
       }
