@@ -1,4 +1,6 @@
-import React, { useCallback, useEffect, useState } from "react";
+import { useNavigation } from "@react-navigation/native";
+import Toast from "react-native-toast-message";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -65,6 +67,7 @@ export default function Acceuil() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const { user } = useAuth();
+  const navigation = useNavigation();
 
   const [biens, setBiens] = useState([]);
   const [search, setSearch] = useState("");
@@ -75,6 +78,16 @@ export default function Acceuil() {
   const [showCalendar, setShowCalendar] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [processingFavorite, setProcessingFavorite] = useState<string | null>(null);
+
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    // Set isMounted to false when component unmounts
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   const fetchBiens = useCallback(async () => {
     setLoading(true);
@@ -117,10 +130,14 @@ export default function Acceuil() {
       }));
       setBiens(mappedBiens);
     } catch (err) {
-      setError("Échec du chargement des biens. Veuillez réessayer.");
+      if (isMounted.current) {
+        setError("Échec du chargement des biens. Veuillez réessayer.");
+      }
       console.error("Fetch biens error:", err);
     } finally {
-      setLoading(false);
+      if (isMounted.current) {
+        setLoading(false);
+      }
     }
   }, [search, activeCat]);
 
@@ -140,7 +157,9 @@ export default function Acceuil() {
         response.data.forEach((item: any) => {
           favMap[item.propertyId] = item.isFavorite;
         });
-        setFavorites(favMap);
+        if (isMounted.current) {
+          setFavorites(favMap);
+        }
       } catch (err) {
         console.error("Check favorites error:", err);
       }
@@ -149,20 +168,41 @@ export default function Acceuil() {
   }, [biens, user]);
 
   const toggleFavori = async (id: string) => {
+    if (processingFavorite === id) return; // Prevent double clicks
+
     if (!user) {
-      Alert.alert(
-        "Connexion requise",
-        "Veuillez vous connecter pour ajouter aux favoris."
-      );
+      Toast.show({
+        type: "error",
+        text1: "Connexion requise",
+        text2: "Veuillez vous connecter pour ajouter aux favoris.",
+      });
+      navigation.navigate("Login" as never);
       return;
     }
-    const newFavState = !favorites[id];
-    setFavorites((prev) => ({ ...prev, [id]: newFavState }));
+
+    const originalState = favorites[id];
+    setProcessingFavorite(id);
+    setFavorites((prev) => ({ ...prev, [id]: !originalState })); // Optimistic update
+
     try {
       await api.post("/users/like", { bienId: id });
+      Toast.show({
+        type: "success",
+        text1: "Favoris mis à jour",
+        text2: !originalState ? "Ajouté aux favoris" : "Retiré des favoris",
+      });
     } catch (err) {
-      setFavorites((prev) => ({ ...prev, [id]: !newFavState })); // Revert on error
-      Alert.alert("Erreur", "Impossible de mettre à jour les favoris.");
+      setFavorites((prev) => ({ ...prev, [id]: originalState })); // Revert on error
+      Toast.show({
+        type: "error",
+        text1: "Erreur",
+        text2: "Impossible de mettre à jour vos favoris.",
+      });
+      console.error("Toggle favorite error:", err);
+    } finally {
+      if (isMounted.current) {
+        setProcessingFavorite(null);
+      }
     }
   };
 
@@ -333,12 +373,17 @@ export default function Acceuil() {
                 styles.favBtn,
                 { backgroundColor: isDark ? "#333" : "#eee" },
               ]}
+              disabled={processingFavorite === item.id}
             >
-              <Icon
-                name={favorites[item.id] ? "heart" : "heart-o"}
-                size={20}
-                color={favorites[item.id] ? "red" : isDark ? "#fff" : "#888"}
-              />
+              {processingFavorite === item.id ? (
+                <ActivityIndicator size="small" color={isDark ? "#fff" : "#888"} />
+              ) : (
+                <Icon
+                  name={favorites[item.id] ? "heart" : "heart-o"}
+                  size={20}
+                  color={favorites[item.id] ? "red" : isDark ? "#fff" : "#888"}
+                />
+              )}
             </TouchableOpacity>
           )}
         </View>

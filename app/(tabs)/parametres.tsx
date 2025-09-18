@@ -73,13 +73,7 @@ export default function Parametres() {
       useNativeDriver: true,
     }).start(() => {
       setShowModal(false);
-
       logout();
-
-      navigation.reset({
-        index: 0,
-        routes: [{ name: "AppTabs" as never }],
-      });
     });
   };
 

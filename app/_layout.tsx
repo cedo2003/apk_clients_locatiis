@@ -30,10 +30,10 @@ export default function App() {
         <ThemeProvider>
           <FavorisProvider>
             <RootNavigator />
+            <Toast />
           </FavorisProvider>
         </ThemeProvider>
       </AuthProvider>
-      <Toast />
     </>
   );
 }

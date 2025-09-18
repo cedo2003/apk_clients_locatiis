@@ -7,9 +7,8 @@ const AuthContext = createContext(undefined);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true); // To show a splash/loading screen on app start
+  const [isLoading, setIsLoading] = useState(true);
 
-  // On app start, check for existing tokens and validate them
   useEffect(() => {
     const initializeAuth = async () => {
       console.log("AuthContext: Initializing authentication state...");
@@ -17,21 +16,16 @@ export const AuthProvider = ({ children }) => {
         const accessToken = await SecureStore.getItemAsync("accessToken");
         if (accessToken) {
           console.log("AuthContext: Token found. Fetching user profile...");
-          // The request interceptor will add the token automatically
-          const response = await api.get("/users/profile");
-          const userData = response.data.user || response.data;
-          setUser(userData);
-          console.log("AuthContext: User profile loaded and set.", userData);
+          await fetchUser();
         } else {
           console.log("AuthContext: No token found. User is not logged in.");
           setUser(null);
         }
       } catch (error) {
         console.error(
-          "AuthContext: Failed to initialize auth. Token might be invalid.",
+          "AuthContext: Failed to initialize auth.",
           error.response?.data || error.message
         );
-        // If profile fetch fails (e.g., token is invalid), treat as logged out
         setUser(null);
         await SecureStore.deleteItemAsync("accessToken");
         await SecureStore.deleteItemAsync("refreshToken");
@@ -44,33 +38,68 @@ export const AuthProvider = ({ children }) => {
     initializeAuth();
   }, []);
 
+  const fetchUser = async () => {
+    console.log("AuthContext: Fetching user profile.");
+    try {
+      const response = await api.get("/auth/profile");
+      const userData = response.data.user || response.data;
+      setUser(userData);
+      console.log("AuthContext: User profile fetched and updated.", userData);
+      return userData;
+    } catch (error) {
+      console.error(
+        "AuthContext: Failed to fetch user profile.",
+        error.response?.data || error.message
+      );
+      // Don't logout here, just clear user
+      setUser(null);
+      await SecureStore.deleteItemAsync("accessToken");
+      await SecureStore.deleteItemAsync("refreshToken");
+      return null;
+    }
+  };
+
   const login = async (email, password) => {
     console.log(`AuthContext: Attempting login for ${email}`);
     try {
-      // The API call
       const response = await api.post("/auth/login", { email, password });
-      const { accessToken, refreshToken, user: userData } = response.data;
+      const { accessToken, refreshToken } = response.data;
 
       console.log("AuthContext: Login successful. Storing tokens.");
-      // Store tokens securely
       await SecureStore.setItemAsync("accessToken", accessToken);
       await SecureStore.setItemAsync("refreshToken", refreshToken);
 
-      // Update the user state, which will trigger UI re-renders
-      setUser(userData);
-      console.log("AuthContext: User state updated.", userData);
-
-      return true; // Signal success to the Login component
+      // Fetch user profile to update state
+      const userData = await fetchUser();
+      return !!userData; // Return true if user was fetched successfully
     } catch (error) {
       console.error(
         "AuthContext: Login failed.",
         error.response?.data || error.message
       );
-      // Clean up any potentially stale tokens
+      setUser(null);
       await SecureStore.deleteItemAsync("accessToken");
       await SecureStore.deleteItemAsync("refreshToken");
-      setUser(null);
-      return false; // Signal failure
+      return false;
+    }
+  };
+
+  const loginWithGoogle = async (idToken) => {
+    console.log("AuthContext: Attempting Google login.");
+    try {
+      const { data } = await api.post("/auth/google/callback", { idToken });
+      await SecureStore.setItemAsync("accessToken", data.accessToken);
+      await SecureStore.setItemAsync("refreshToken", data.refreshToken);
+
+      const newUser = await fetchUser();
+      console.log("AuthContext: Google login successful.");
+      return !!newUser;
+    } catch (error) {
+      console.error(
+        "AuthContext: Google login failed.",
+        error.response?.data || error.message
+      );
+      return false;
     }
   };
 
@@ -80,9 +109,11 @@ export const AuthProvider = ({ children }) => {
       const { data } = await api.post("/auth/signup", userData);
       await SecureStore.setItemAsync("accessToken", data.accessToken);
       await SecureStore.setItemAsync("refreshToken", data.refreshToken);
-      setUser(data.user);
+
+      // Fetch user profile to update state
+      const newUser = await fetchUser();
       console.log("AuthContext: Signup successful, user is now logged in.");
-      return true;
+      return !!newUser; // Return true if user was fetched successfully
     } catch (error) {
       console.error(
         "AuthContext: Signup failed.",
@@ -95,40 +126,18 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     console.log("AuthContext: Logging out user.");
     try {
-      // Inform the backend about logout (optional but good practice)
       await api.post("/auth/signout");
       console.log("AuthContext: Backend signout successful.");
     } catch (e) {
-      // Don't block logout if this fails, just log it.
       console.warn(
         "AuthContext: Backend signout request failed, but proceeding with client-side logout.",
         e.message
       );
     } finally {
-      // Clear tokens and user state regardless of backend response
+      setUser(null);
       await SecureStore.deleteItemAsync("accessToken");
       await SecureStore.deleteItemAsync("refreshToken");
-      setUser(null);
       console.log("AuthContext: Tokens cleared, user state set to null.");
-    }
-  };
-
-  const fetchUser = async () => {
-    console.log("AuthContext: Manually re-fetching user profile.");
-    try {
-      const response = await api.get("/auth/profile");
-      const userData = response.data.user || response.data;
-      setUser(userData);
-      console.log(
-        "AuthContext: User profile re-fetched and updated.",
-        userData
-      );
-    } catch (error) {
-      console.error(
-        "AuthContext: Failed to re-fetch user profile.",
-        error.response?.data || error.message
-      );
-      await logout();
     }
   };
 
@@ -140,6 +149,7 @@ export const AuthProvider = ({ children }) => {
     signup,
     fetchUser,
     setUser,
+    loginWithGoogle,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
